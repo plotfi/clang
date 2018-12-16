@@ -305,6 +305,10 @@ public:
   unsigned ComputeBitfieldBitOffset(CodeGen::CodeGenModule &CGM,
                                     const ObjCInterfaceDecl *ID,
                                     const ObjCIvarDecl *Ivar);
+
+  llvm::SmallVector<llvm::Metadata*, 8> Selectors;
+  void populateSelectorMD(llvm::GlobalVariable *GV);
+  void finalizeSelectorMD(llvm::Module &M);
 };
 
 /// Creates an instance of an Objective-C runtime class.

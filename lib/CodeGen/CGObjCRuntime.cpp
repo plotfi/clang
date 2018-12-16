@@ -386,3 +386,13 @@ CGObjCRuntime::getMessageSendInfo(const ObjCMethodDecl *method,
     CGM.getTypes().GetFunctionType(argsInfo)->getPointerTo();
   return MessageSendInfo(argsInfo, signatureType);
 }
+
+void CGObjCRuntime::populateSelectorMD(llvm::GlobalVariable *GV) {
+  llvm::MDString *MDS = llvm::MDString::get(GV->getContext(), GV->getName());
+  Selectors.push_back(MDS);
+}
+
+void CGObjCRuntime::finalizeSelectorMD(llvm::Module &M) {
+  M.getOrInsertNamedMetadata("llvm.objc.selectors")
+      ->addOperand(llvm::MDNode::get(M.getContext(), Selectors));
+}

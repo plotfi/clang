@@ -202,8 +202,12 @@ protected:
   /// Helper function that generates a constant string and returns a pointer to
   /// the start of the string.  The result of this function can be used anywhere
   /// where the C code specifies const char*.
-  llvm::Constant *MakeConstantString(StringRef Str, const char *Name = "") {
+  llvm::Constant *MakeConstantString(StringRef Str, const char *Name = "",
+                                     bool IsSelector = false) {
     ConstantAddress Array = CGM.GetAddrOfConstantCString(Str, Name);
+    if (IsSelector)
+      if (auto *GV = dyn_cast<llvm::GlobalVariable>(Array.getPointer()))
+        populateSelectorMD(GV);
     return llvm::ConstantExpr::getGetElementPtr(Array.getElementType(),
                                                 Array.getPointer(), Zeros);
   }
@@ -2699,9 +2703,13 @@ GenerateMethodList(StringRef ClassName,
       Method.addBitCast(FnPtr, IMPTy);
       Method.add(GetConstantSelector(OMD->getSelector(),
           Context.getObjCEncodingForMethodDecl(OMD)));
-      Method.add(MakeConstantString(Context.getObjCEncodingForMethodDecl(OMD, true)));
+      Method.add(
+          MakeConstantString(Context.getObjCEncodingForMethodDecl(OMD, true),
+                             "OBJC_METH_VAR_NAME_", true /* IsSelector */));
     } else {
-      Method.add(MakeConstantString(OMD->getSelector().getAsString()));
+      Method.add(MakeConstantString(OMD->getSelector().getAsString(),
+                                    "OBJC_METH_VAR_NAME_",
+                                    true /* IsSelector */));
       Method.add(MakeConstantString(Context.getObjCEncodingForMethodDecl(OMD)));
       Method.addBitCast(FnPtr, IMPTy);
     }

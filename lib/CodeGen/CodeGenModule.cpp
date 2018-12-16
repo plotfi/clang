@@ -399,9 +399,11 @@ void CodeGenModule::Release() {
   EmitCXXGlobalDtorFunc();
   registerGlobalDtorsWithAtExit();
   EmitCXXThreadLocalInitFunc();
-  if (ObjCRuntime)
+  if (ObjCRuntime) {
     if (llvm::Function *ObjCInitFunction = ObjCRuntime->ModuleInitFunction())
       AddGlobalCtor(ObjCInitFunction);
+    ObjCRuntime->finalizeSelectorMD(getModule());
+  }
   if (Context.getLangOpts().CUDA && !Context.getLangOpts().CUDAIsDevice &&
       CUDARuntime) {
     if (llvm::Function *CudaCtorFunction =

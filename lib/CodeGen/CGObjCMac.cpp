@@ -902,6 +902,7 @@ protected:
 
   /// GetMethodVarName - Return a unique constant for the given
   /// selector's name. The return value has type char *.
+  llvm::GlobalVariable *GetMethodVarNameGV(Selector Sel);
   llvm::Constant *GetMethodVarName(Selector Sel);
   llvm::Constant *GetMethodVarName(IdentifierInfo *Ident);
 
@@ -5418,17 +5419,26 @@ CGObjCCommonMac::BuildIvarLayout(const ObjCImplementationDecl *OMD,
   return C;
 }
 
-llvm::Constant *CGObjCCommonMac::GetMethodVarName(Selector Sel) {
+llvm::GlobalVariable *CGObjCCommonMac::GetMethodVarNameGV(Selector Sel) {
   llvm::GlobalVariable *&Entry = MethodVarNames[Sel];
   // FIXME: Avoid std::string in "Sel.getAsString()"
   if (!Entry)
-    Entry = CreateCStringLiteral(Sel.getAsString(), ObjCLabelType::MethodVarName);
-  return getConstantGEP(VMContext, Entry, 0, 0);
+    Entry =
+        CreateCStringLiteral(Sel.getAsString(), ObjCLabelType::MethodVarName);
+  return Entry;
+}
+
+llvm::Constant *CGObjCCommonMac::GetMethodVarName(Selector Sel) {
+  llvm::GlobalVariable *GV = GetMethodVarNameGV(Sel);
+  populateSelectorMD(GV);
+  return getConstantGEP(VMContext, GV, 0, 0);
 }
 
 // FIXME: Merge into a single cstring creation function.
 llvm::Constant *CGObjCCommonMac::GetMethodVarName(IdentifierInfo *ID) {
-  return GetMethodVarName(CGM.getContext().Selectors.getNullarySelector(ID));
+  llvm::GlobalVariable *GV =
+      GetMethodVarNameGV(CGM.getContext().Selectors.getNullarySelector(ID));
+  return getConstantGEP(VMContext, GV, 0, 0);
 }
 
 llvm::Constant *CGObjCCommonMac::GetMethodVarType(const FieldDecl *Field) {
